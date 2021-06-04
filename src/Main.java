@@ -1,8 +1,11 @@
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.image.BufferStrategy;
 import java.util.ArrayList;
+
+import javax.swing.JOptionPane;
 
 @SuppressWarnings("serial")
 public class Main extends Canvas implements Runnable {
@@ -11,24 +14,69 @@ public class Main extends Canvas implements Runnable {
 	private boolean running = false;
 
 	public static int WIDTH = 800, HEIGHT = 600;
-	
+
+	private ControlsWindow controlsWindow;
 	private MouseInput mouse;
 	private CircleList list;
+
+	private ArrayList<Point> points;
+	private boolean startCirclePacking = false;
+	private int circleCount = 0, circleMax = 20;
+	private int circleAddingAttempts = 0;
+	public boolean completed = false;
 	
+	public Color background = new Color(70, 70, 70);
+
 	public Main() {
 		requestFocus();
 		list = new CircleList();
 		mouse = new MouseInput(list);
+
 		addMouseListener(mouse);
 		addMouseMotionListener(mouse);
-		new Window(WIDTH, HEIGHT, "Circle Packing", this);
+		Window window = new Window(WIDTH, HEIGHT, "Circle Packing", this);
+		controlsWindow = new ControlsWindow(this, list, window.getX(), window.getY(), window.getWidth(), window.getHeight());
+	}
+
+	public void startCirclePacking(ArrayList<Point> points) {
+		this.points = points;
+		startCirclePacking = true;
 	}
 	
+	public void reset() {
+		list.clear();
+		circleCount = 0;
+		completed = false;
+		controlsWindow.setInfoIndex(0);
+		startCirclePacking = false;
+		list.reconfigureColors();
+		circleAddingAttempts = 0;
+	}
+
 	private void tick() {
-		int randomX = (int) (Math.random() * WIDTH);
-		int randomY = (int) (Math.random() * HEIGHT);
-		list.addCircle(randomX, randomY);
-		
+		if (startCirclePacking) {
+			while (circleCount++ < circleMax) {
+				if (points.size() == 0) {
+					reset();
+					JOptionPane.showMessageDialog(null, "ERROR! Chosen file does not have bright enough pixels.","ERROR", JOptionPane.ERROR_MESSAGE);
+					break;
+				}
+					
+				int randomPoint = (int) (Math.random() * points.size());
+				Point point = points.get(randomPoint);
+				boolean added = list.addCircle(point.x, point.y);
+				if (!added)
+					circleAddingAttempts++;
+				if (circleAddingAttempts > 1000) {
+					startCirclePacking = false;
+					completed = true;
+					controlsWindow.setInfoIndex(2);
+					break;
+				}
+			}
+			circleCount = 0;
+		}
+
 		for (int i = 0; i < list.getList().size(); i++)
 			list.getList().get(i).tick();
 	}
@@ -42,9 +90,9 @@ public class Main extends Canvas implements Runnable {
 		Graphics g = bs.getDrawGraphics();
 
 		//background
-		g.setColor(new Color(70, 70, 70));
+		g.setColor(background);
 		g.fillRect(0, 0, WIDTH, HEIGHT);
-		
+
 		//circles
 		for (int i = 0; i < list.getList().size(); i++)
 			list.getList().get(i).render(g);
@@ -94,5 +142,5 @@ public class Main extends Canvas implements Runnable {
 	public static void main(String[] args) {
 		new Main();	
 	}
-	
+
 }
