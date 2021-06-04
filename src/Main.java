@@ -2,6 +2,7 @@ import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
+import java.util.ArrayList;
 
 @SuppressWarnings("serial")
 public class Main extends Canvas implements Runnable {
@@ -9,19 +10,31 @@ public class Main extends Canvas implements Runnable {
 	private Thread thread;
 	private boolean running = false;
 
-	private int width = 800, height = 600;
+	public static int WIDTH = 800, HEIGHT = 600;
+	
+	private MouseInput mouse;
+	private CircleList list;
 	
 	public Main() {
 		requestFocus();
-		new Window(width, height, "Circle Packing", this);
+		list = new CircleList();
+		mouse = new MouseInput(list);
+		addMouseListener(mouse);
+		addMouseMotionListener(mouse);
+		new Window(WIDTH, HEIGHT, "Circle Packing", this);
 	}
-
+	
 	private void tick() {
+		int randomX = (int) (Math.random() * WIDTH);
+		int randomY = (int) (Math.random() * HEIGHT);
+		list.addCircle(randomX, randomY);
 		
+		for (int i = 0; i < list.getList().size(); i++)
+			list.getList().get(i).tick();
 	}
 
 	private void render() {
-		BufferStrategy bs=this.getBufferStrategy();
+		BufferStrategy bs = this.getBufferStrategy();
 		if (bs == null) {
 			this.createBufferStrategy(3);
 			return;
@@ -30,7 +43,11 @@ public class Main extends Canvas implements Runnable {
 
 		//background
 		g.setColor(new Color(70, 70, 70));
-		g.fillRect(0, 0, width, height);
+		g.fillRect(0, 0, WIDTH, HEIGHT);
+		
+		//circles
+		for (int i = 0; i < list.getList().size(); i++)
+			list.getList().get(i).render(g);
 
 		g.dispose();
 		bs.show();
